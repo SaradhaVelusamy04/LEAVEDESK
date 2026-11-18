@@ -68,6 +68,36 @@ class LeaveRepository:
         stmt = stmt.order_by(desc(LeaveRequest.created_at))
         return list(self.db.scalars(stmt).all())
 
+    def get_team_leaves(
+        self,
+        direct_report_ids: List[int],
+        status: Optional[str] = "PENDING",
+        employee_id: Optional[int] = None,
+        from_date: Optional[date] = None,
+        to_date: Optional[date] = None
+    ) -> List[LeaveRequest]:
+        """Retrieve leave requests for direct reports with optional filters."""
+        if not direct_report_ids:
+            return []
+
+        # If employee_id is passed, filter specifically for that employee (if in direct reports)
+        if employee_id:
+            if employee_id not in direct_report_ids:
+                return []
+            stmt = select(LeaveRequest).where(LeaveRequest.user_id == employee_id)
+        else:
+            stmt = select(LeaveRequest).where(LeaveRequest.user_id.in_(direct_report_ids))
+
+        if status:
+            stmt = stmt.where(LeaveRequest.status == status.strip().upper())
+        if from_date:
+            stmt = stmt.where(LeaveRequest.date >= from_date)
+        if to_date:
+            stmt = stmt.where(LeaveRequest.date <= to_date)
+
+        stmt = stmt.order_by(desc(LeaveRequest.created_at))
+        return list(self.db.scalars(stmt).all())
+
     def create(
         self,
         user_id: int,

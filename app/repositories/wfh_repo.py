@@ -69,6 +69,35 @@ class WfhRepository:
         stmt = stmt.order_by(desc(WfhRequest.created_at))
         return list(self.db.scalars(stmt).all())
 
+    def get_team_wfh(
+        self,
+        direct_report_ids: List[int],
+        status: Optional[str] = "PENDING",
+        employee_id: Optional[int] = None,
+        from_date: Optional[date] = None,
+        to_date: Optional[date] = None
+    ) -> List[WfhRequest]:
+        """Retrieve WFH requests for direct reports with optional filters."""
+        if not direct_report_ids:
+            return []
+
+        if employee_id:
+            if employee_id not in direct_report_ids:
+                return []
+            stmt = select(WfhRequest).where(WfhRequest.user_id == employee_id)
+        else:
+            stmt = select(WfhRequest).where(WfhRequest.user_id.in_(direct_report_ids))
+
+        if status:
+            stmt = stmt.where(WfhRequest.status == status.strip().upper())
+        if from_date:
+            stmt = stmt.where(WfhRequest.end_date >= from_date)
+        if to_date:
+            stmt = stmt.where(WfhRequest.start_date <= to_date)
+
+        stmt = stmt.order_by(desc(WfhRequest.created_at))
+        return list(self.db.scalars(stmt).all())
+
     def create(
         self,
         user_id: int,

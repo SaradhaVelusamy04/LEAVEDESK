@@ -78,68 +78,74 @@ This log tracks every completed milestone, code additions, architectural decisio
 * **Author:** Senior Backend Engineer
 
 ### 1. Activities Completed
-1. Implemented domain validation and calculation rules in `app/domain/rules.py`:
-   - `validate_and_calculate_leave_days`: calculates days_counted (`FULL_DAY` = 1.0, `HALF_DAY` = 0.5, `HOURS` = hours / 8), and rejects invalid hours, fractional values, and mismatched combinations with 422.
-   - `calculate_working_days`: evaluates working days (Monday-Friday) between `start_date` and `end_date` inclusive, enforcing between 1 and 2 working days (rejects 0 working days or > 2 working days with 422).
+1. Implemented domain validation and calculation rules in `app/domain/rules.py` for leave durations and WFH working days (Monday-Friday, max 2 working days).
 2. Implemented centralized state machine in `app/domain/state_machine.py` enforcing `PENDING -> APPROVED/REJECTED/CANCELLED` and rejecting invalid transitions with 409 Conflict.
-3. Implemented SQLAlchemy entities:
-   - `LeaveRequest` in `app/models/leave.py`
-   - `WfhRequest` in `app/models/wfh.py`
+3. Implemented SQLAlchemy entities: `LeaveRequest` and `WfhRequest`.
 4. Created Alembic migration `alembic/versions/0002_create_leave_and_wfh_tables.py`.
-5. Created Pydantic DTOs:
-   - `LeaveCreateRequest` and `LeaveResponse` in `app/schemas/leave.py`
-   - `WfhCreateRequest` and `WfhResponse` in `app/schemas/wfh.py`
-6. Built database repositories:
-   - `LeaveRepository` in `app/repositories/leave_repo.py`
-   - `WfhRepository` in `app/repositories/wfh_repo.py`
-7. Implemented application services with user-level pessimistic locking (`with_for_update`) to eliminate overlap race conditions:
-   - `LeaveService` in `app/services/leave_service.py`
-   - `WfhService` in `app/services/wfh_service.py`
-8. Implemented API routers in presentation layer:
-   - `POST /leaves`, `GET /leaves/me`, `POST /leaves/{id}/cancel` in `app/api/v1/leaves.py`
-   - `POST /wfh`, `GET /wfh/me`, `POST /wfh/{id}/cancel` in `app/api/v1/wfh.py`
-9. Registered endpoints in `app/main.py`.
-10. Authored comprehensive test suites:
-    - `tests/test_leaves.py` (8 test scenarios)
-    - `tests/test_wfh.py` (7 test scenarios)
-11. Executed and verified test suite: 26/26 tests passed.
+5. Created Pydantic DTOs: `LeaveCreateRequest`, `LeaveResponse`, `WfhCreateRequest`, `WfhResponse`.
+6. Built database repositories: `LeaveRepository` and `WfhRepository`.
+7. Implemented application services with user-level pessimistic locking (`with_for_update`) to eliminate overlap race conditions (`LeaveService`, `WfhService`).
+8. Implemented API routers: `app/api/v1/leaves.py` and `app/api/v1/wfh.py`.
+9. Authored comprehensive test suites: `tests/test_leaves.py` and `tests/test_wfh.py`.
+10. Executed and verified test suite: 26/26 tests passed.
+
+---
+
+## Milestone 4: Manager Approval Workflow & State Machine
+
+* **Status:** Complete
+* **Date:** 2026-11-18
+* **Author:** Senior Backend Engineer
+
+### 1. Activities Completed
+1. Extended `LeaveRepository` and `WfhRepository` with `get_team_leaves` and `get_team_wfh` supporting direct reports scoping and filters (`status`, `employee_id`, `from_date`, `to_date`).
+2. Implemented `ManagerService` in `app/services/manager_service.py`:
+   - `get_review_queue`: aggregates leave and WFH requests for manager's direct reports, default `status=PENDING`.
+   - `decide_leave`: enforces direct-report authorization check (403 for non-reports), centralized state transition check (409 for non-pending), rejection comment length validation (min 5 chars), and audit recording (`decided_by`, `decided_at` UTC, `decision_comment`).
+   - `decide_wfh`: enforces same direct-report authorization, state transition, and audit trail rules for WFH requests.
+3. Implemented presentation DTOs in `app/schemas/manager.py`:
+   - `DecisionApproveRequest` (optional comment)
+   - `DecisionRejectRequest` (mandatory comment with >= 5 chars validation)
+   - `ManagerRequestsResponse`
+4. Implemented manager API router in `app/api/v1/manager.py`:
+   - `GET /manager/requests`
+   - `POST /manager/leaves/{id}/approve` & `POST /manager/leaves/{id}/reject`
+   - `POST /manager/wfh/{id}/approve` & `POST /manager/wfh/{id}/reject`
+   - Protected with `require_role("manager")` dependency.
+5. Registered `manager_router` in `app/main.py`.
+6. Authored comprehensive test suite in `tests/test_manager.py`:
+   - Review queue defaults to PENDING and returns direct reports only.
+   - Non-manager (employee) receives 403 Forbidden on all manager routes.
+   - Manager approving leave records full audit trail.
+   - Manager rejecting leave requires at least 5 characters (422 on empty or short comment).
+   - Manager attempting to decide another team's request receives 403 Forbidden.
+   - Deciding an already decided request returns 409 Conflict.
+   - Manager approving WFH requests.
+7. Executed full test suite: 33/33 tests passed.
 
 ### 2. Files Created or Modified
-* `app/domain/rules.py` (Created)
-* `app/domain/state_machine.py` (Created)
-* `app/models/leave.py` (Created)
-* `app/models/wfh.py` (Created)
-* `app/schemas/leave.py` (Created)
-* `app/schemas/wfh.py` (Created)
-* `app/repositories/leave_repo.py` (Created)
-* `app/repositories/wfh_repo.py` (Created)
-* `app/services/leave_service.py` (Created)
-* `app/services/wfh_service.py` (Created)
-* `app/api/v1/leaves.py` (Created)
-* `app/api/v1/wfh.py` (Created)
-* `app/main.py` (Updated to register leave and wfh routers)
-* `alembic/versions/0002_create_leave_and_wfh_tables.py` (Created)
-* `tests/conftest.py` (Updated fixture for clean DB isolation)
-* `tests/test_leaves.py` (Created)
-* `tests/test_wfh.py` (Created)
+* `app/schemas/manager.py` (Created)
+* `app/services/manager_service.py` (Created)
+* `app/api/v1/manager.py` (Created)
+* `app/repositories/leave_repo.py` (Added `get_team_leaves`)
+* `app/repositories/wfh_repo.py` (Added `get_team_wfh`)
+* `app/main.py` (Registered `manager_router`)
+* `tests/test_manager.py` (Created)
 
 ### 3. Key Technical Decisions
-* **Duration Rule Enforcement:** Delegated duration calculation to pure domain functions (`app/domain/rules.py`), executing before database queries.
-* **Concurrency Locking:** Serialized concurrent leave/WFH submissions per user using row-level pessimistic locking (`with_for_update`), preventing simultaneous conflicting submissions.
-* **Resource Privacy:** Enforced 404 Not Found (instead of 403) when attempting to access or cancel requests owned by another user, preventing resource enumeration.
+* **Team Authorization Isolation:** Directly queried requester's `reports_to_id` against `manager.id` inside the domain service layer, returning 403 Forbidden if a manager attempts to decide another manager's reports.
+* **Audit Trail Integrity:** System-generated UTC timestamps (`datetime.now(timezone.utc)`) and authenticated caller ID used for `decided_at` and `decided_by`, preventing client-side forgery.
+* **Centralized Transition Guard:** Both leave and WFH decision endpoints delegate directly to `RequestStateMachine.validate_transition`, preventing state corruption.
 
 ### 4. Tests Executed & Results
-* Ran full test suite across all modules: 26 passed in 13.82s.
+* Ran full test suite across all modules: 33 passed in 20.51s.
 
 ### 5. Next Milestone
-* **Milestone 4 — Manager Approval Workflow:**
-  - Build `GET /manager/requests` returning direct reports' requests (defaults to `status=PENDING`, optional filters: `status`, `employee_id`, `from_date`, `to_date`).
-  - Build decision endpoints:
-    - `POST /manager/leaves/{id}/approve` & `POST /manager/leaves/{id}/reject`
-    - `POST /manager/wfh/{id}/approve` & `POST /manager/wfh/{id}/reject`
-  - Enforce role check: manager only (403 for employees).
-  - Enforce hierarchy check: direct reports only (403 for requests outside manager's team).
-  - Enforce rejection comment minimum length (>= 5 characters).
-  - Enforce state machine (deciding non-pending request returns 409 Conflict).
-  - Record audit trail: `decided_by`, `decided_at` (UTC timestamp), and `decision_comment`.
-  - Author comprehensive test suite in `tests/test_manager.py`.
+* **Milestone 5 — Reporting Engine (6-Month CSV Export):**
+  - Implement server-side exact 6-calendar-month calculation using `dateutil.relativedelta`.
+  - Build query logic aggregating leave and WFH records within the date window.
+  - Expand multi-day WFH requests into one row per working day.
+  - Construct exact CSV formatted string with headers, chronological data rows, blank line, and summary statistics block.
+  - Implement role-based access control (caller only, or manager for direct report; 403 for others).
+  - Return valid CSV with zero summary for empty history.
+  - Author comprehensive test suite in `tests/test_reports.py`.
