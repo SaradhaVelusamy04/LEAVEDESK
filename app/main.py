@@ -12,6 +12,7 @@ from app.core.exceptions import (
     generic_exception_handler
 )
 from app.api.v1.health import router as health_router
+from app.api.v1.auth import router as auth_router
 
 
 def create_application() -> FastAPI:
@@ -44,9 +45,13 @@ def create_application() -> FastAPI:
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(Exception, generic_exception_handler)
 
-    # Health router (available both at /health and /api/v1/health)
+    # Health router
     app.include_router(health_router)
     app.include_router(health_router, prefix=settings.API_V1_STR)
+
+    # Auth router (mounted at /auth and /api/v1/auth)
+    app.include_router(auth_router)
+    app.include_router(auth_router, prefix=settings.API_V1_STR)
 
     return app
 

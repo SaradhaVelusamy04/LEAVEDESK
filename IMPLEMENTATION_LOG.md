@@ -45,44 +45,69 @@ This log tracks every completed milestone, code additions, architectural decisio
 10. Built test configuration in `pytest.ini` and `tests/conftest.py` with TestClient fixture.
 11. Executed and verified test suite in `tests/test_health.py` (3/3 passed).
 
+---
+
+## Milestone 2: Authentication, Users & Seed Data
+
+* **Status:** Complete
+* **Date:** 2026-11-18
+* **Author:** Senior Backend Engineer
+
+### 1. Activities Completed
+1. Implemented domain enumerations in `app/domain/enums.py` (`RoleEnum`, `LeaveTypeEnum`, `DurationTypeEnum`, `HalfEnum`, `RequestStatusEnum`, `RequestTypeEnum`).
+2. Implemented `User` SQLAlchemy model in `app/models/user.py` with email indexing, role mapping, and self-referential `manager` / `direct_reports` hierarchy.
+3. Created Pydantic DTO schemas in `app/schemas/auth.py` (`LoginRequest`, `TokenResponse`, `UserResponse`) with regex-based RFC-compliant email validation supporting `.test` domains.
+4. Created `UserRepository` in `app/repositories/user_repo.py` implementing clean database access queries.
+5. Implemented `AuthService` in `app/services/auth_service.py` with identical generic 401 error message for bad password and unknown email.
+6. Implemented FastAPI dependencies in `app/api/deps.py`:
+   - `get_current_user`: extracts Bearer token, validates claims, loads user from database.
+   - `require_role("manager")`: verifies caller role and returns 403 Forbidden for unauthorized roles.
+7. Implemented authentication router in `app/api/v1/auth.py`:
+   - `POST /auth/login` (generates JWT bearer token).
+   - `GET /auth/me` (returns caller profile without password hash).
+8. Implemented database seeding script `seed.py` creating:
+   - Priya Manager (`priya.manager@leavedesk.test`, role: `manager`, reports_to: None)
+   - Arjun Employee (`arjun@leavedesk.test`, role: `employee`, reports_to: Priya)
+   - Meera Employee (`meera@leavedesk.test`, role: `employee`, reports_to: Priya)
+9. Authored initial Alembic database migration `alembic/versions/0001_create_users_table.py`.
+10. Authored comprehensive test suite in `tests/test_auth.py` covering all Section 1 requirements:
+    - Successful login for employees and managers.
+    - Uniform 401 response for wrong password and unknown email.
+    - Expired token handling (401).
+    - Tampered token handling (401).
+    - Profile endpoint without password hash exposure.
+    - Role-based 403 enforcement for employees accessing manager routes.
+    - Seed script execution and idempotency.
+
 ### 2. Files Created or Modified
-* `.gitignore`
-* `.env.example`
-* `requirements.txt`
-* `pytest.ini`
-* `app/__init__.py`
-* `app/core/__init__.py`
-* `app/core/config.py`
-* `app/core/database.py`
-* `app/core/exceptions.py`
-* `app/core/security.py`
-* `app/api/__init__.py`
-* `app/api/v1/__init__.py`
-* `app/api/v1/health.py`
-* `app/main.py`
-* `alembic.ini`
-* `alembic/env.py`
-* `alembic/script.py.mako`
-* `tests/conftest.py`
-* `tests/test_health.py`
+* `app/domain/enums.py` (Created)
+* `app/models/user.py` (Created)
+* `app/schemas/auth.py` (Created)
+* `app/repositories/user_repo.py` (Created)
+* `app/services/auth_service.py` (Created)
+* `app/api/deps.py` (Created)
+* `app/api/v1/auth.py` (Created)
+* `app/main.py` (Updated to register auth router)
+* `seed.py` (Created)
+* `alembic/versions/0001_create_users_table.py` (Created)
+* `tests/test_auth.py` (Created)
+* `requirements.txt` (Added `email-validator`)
 
 ### 3. Key Technical Decisions
-* **Bcrypt & JWT:** Used `bcrypt` directly with work factor 12 and `python-jose` for JWT signing, ensuring zero reliance on deprecated standard library modules.
-* **Unified Error Schemas:** Enforced standard `{ "detail": "..." }` responses across all exception types (including validation and internal server errors) so clients always receive consistent error structures.
-* **Health Check Probe:** `GET /health` runs `SELECT 1` against the database; returns 200 `{"status": "ok"}` on success and 503 `{"status": "error", "detail": "Database connection failed"}` if connectivity drops.
+* **Bcrypt Password Security:** Ensured password hashes are created with 12 rounds of salt and never stored or returned in plain text.
+* **Enumeration and Hierarchy:** Built self-referential adjacency list model in SQLAlchemy to cleanly represent managerial hierarchy (`reports_to_id`).
+* **Generic 401 Responses:** Standardized detail message `"Invalid email or password"` to prevent user enumeration attacks.
+* **Email Validation:** Handled `.test` top-level domains specified in assignment instructions without DNS deliverability rejection.
 
 ### 4. Tests Executed & Results
-* `tests/test_health.py::test_health_check_success` -> PASSED
-* `tests/test_health.py::test_health_check_api_v1` -> PASSED
-* `tests/test_health.py::test_health_check_db_failure` -> PASSED
-* Overall: 3 passed in 0.05s.
+* Ran pytest across all suites: 11 passed in 3.65s (`test_health.py` and `test_auth.py`).
 
 ### 5. Next Milestone
-* **Milestone 2 — Authentication, Users & Seed Data:**
-  - Define `User` SQLAlchemy model with role enum and `reports_to_id` self-referential relationship.
-  - Generate initial Alembic migration for users table.
-  - Implement Pydantic auth schemas (`LoginRequest`, `TokenResponse`, `UserResponse`).
-  - Implement `POST /auth/login` and `GET /auth/me`.
-  - Implement FastAPI dependencies `get_current_user` and `require_role("manager")`.
-  - Create database seeding script `seed.py` with Priya, Arjun, and Meera.
-  - Author and run comprehensive authentication test suite.
+* **Milestone 3 — Leave & Work-From-Home (WFH) Management:**
+  - Create `LeaveRequest` and `WfhRequest` SQLAlchemy models.
+  - Generate Alembic migration for leave and WFH tables.
+  - Implement duration calculation logic (`FULL_DAY`, `HALF_DAY`, `HOURS`) in domain rules.
+  - Implement WFH date range and 2-working-days validation.
+  - Implement concurrency-safe overlap detection using row-level pessimistic locking (`FOR UPDATE`).
+  - Implement endpoints: `POST /leaves`, `GET /leaves/me`, `POST /leaves/{id}/cancel`, `POST /wfh`, `GET /wfh/me`, `POST /wfh/{id}/cancel`.
+  - Author comprehensive test suite in `tests/test_leaves.py` and `tests/test_wfh.py`.
