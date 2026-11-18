@@ -65,49 +65,81 @@ This log tracks every completed milestone, code additions, architectural decisio
 7. Implemented authentication router in `app/api/v1/auth.py`:
    - `POST /auth/login` (generates JWT bearer token).
    - `GET /auth/me` (returns caller profile without password hash).
-8. Implemented database seeding script `seed.py` creating:
-   - Priya Manager (`priya.manager@leavedesk.test`, role: `manager`, reports_to: None)
-   - Arjun Employee (`arjun@leavedesk.test`, role: `employee`, reports_to: Priya)
-   - Meera Employee (`meera@leavedesk.test`, role: `employee`, reports_to: Priya)
+8. Implemented database seeding script `seed.py` creating Priya Manager, Arjun Employee, and Meera Employee.
 9. Authored initial Alembic database migration `alembic/versions/0001_create_users_table.py`.
-10. Authored comprehensive test suite in `tests/test_auth.py` covering all Section 1 requirements:
-    - Successful login for employees and managers.
-    - Uniform 401 response for wrong password and unknown email.
-    - Expired token handling (401).
-    - Tampered token handling (401).
-    - Profile endpoint without password hash exposure.
-    - Role-based 403 enforcement for employees accessing manager routes.
-    - Seed script execution and idempotency.
+10. Authored comprehensive test suite in `tests/test_auth.py` covering all Section 1 requirements (11/11 passed).
+
+---
+
+## Milestone 3: Leave & Work-From-Home (WFH) Management
+
+* **Status:** Complete
+* **Date:** 2026-11-18
+* **Author:** Senior Backend Engineer
+
+### 1. Activities Completed
+1. Implemented domain validation and calculation rules in `app/domain/rules.py`:
+   - `validate_and_calculate_leave_days`: calculates days_counted (`FULL_DAY` = 1.0, `HALF_DAY` = 0.5, `HOURS` = hours / 8), and rejects invalid hours, fractional values, and mismatched combinations with 422.
+   - `calculate_working_days`: evaluates working days (Monday-Friday) between `start_date` and `end_date` inclusive, enforcing between 1 and 2 working days (rejects 0 working days or > 2 working days with 422).
+2. Implemented centralized state machine in `app/domain/state_machine.py` enforcing `PENDING -> APPROVED/REJECTED/CANCELLED` and rejecting invalid transitions with 409 Conflict.
+3. Implemented SQLAlchemy entities:
+   - `LeaveRequest` in `app/models/leave.py`
+   - `WfhRequest` in `app/models/wfh.py`
+4. Created Alembic migration `alembic/versions/0002_create_leave_and_wfh_tables.py`.
+5. Created Pydantic DTOs:
+   - `LeaveCreateRequest` and `LeaveResponse` in `app/schemas/leave.py`
+   - `WfhCreateRequest` and `WfhResponse` in `app/schemas/wfh.py`
+6. Built database repositories:
+   - `LeaveRepository` in `app/repositories/leave_repo.py`
+   - `WfhRepository` in `app/repositories/wfh_repo.py`
+7. Implemented application services with user-level pessimistic locking (`with_for_update`) to eliminate overlap race conditions:
+   - `LeaveService` in `app/services/leave_service.py`
+   - `WfhService` in `app/services/wfh_service.py`
+8. Implemented API routers in presentation layer:
+   - `POST /leaves`, `GET /leaves/me`, `POST /leaves/{id}/cancel` in `app/api/v1/leaves.py`
+   - `POST /wfh`, `GET /wfh/me`, `POST /wfh/{id}/cancel` in `app/api/v1/wfh.py`
+9. Registered endpoints in `app/main.py`.
+10. Authored comprehensive test suites:
+    - `tests/test_leaves.py` (8 test scenarios)
+    - `tests/test_wfh.py` (7 test scenarios)
+11. Executed and verified test suite: 26/26 tests passed.
 
 ### 2. Files Created or Modified
-* `app/domain/enums.py` (Created)
-* `app/models/user.py` (Created)
-* `app/schemas/auth.py` (Created)
-* `app/repositories/user_repo.py` (Created)
-* `app/services/auth_service.py` (Created)
-* `app/api/deps.py` (Created)
-* `app/api/v1/auth.py` (Created)
-* `app/main.py` (Updated to register auth router)
-* `seed.py` (Created)
-* `alembic/versions/0001_create_users_table.py` (Created)
-* `tests/test_auth.py` (Created)
-* `requirements.txt` (Added `email-validator`)
+* `app/domain/rules.py` (Created)
+* `app/domain/state_machine.py` (Created)
+* `app/models/leave.py` (Created)
+* `app/models/wfh.py` (Created)
+* `app/schemas/leave.py` (Created)
+* `app/schemas/wfh.py` (Created)
+* `app/repositories/leave_repo.py` (Created)
+* `app/repositories/wfh_repo.py` (Created)
+* `app/services/leave_service.py` (Created)
+* `app/services/wfh_service.py` (Created)
+* `app/api/v1/leaves.py` (Created)
+* `app/api/v1/wfh.py` (Created)
+* `app/main.py` (Updated to register leave and wfh routers)
+* `alembic/versions/0002_create_leave_and_wfh_tables.py` (Created)
+* `tests/conftest.py` (Updated fixture for clean DB isolation)
+* `tests/test_leaves.py` (Created)
+* `tests/test_wfh.py` (Created)
 
 ### 3. Key Technical Decisions
-* **Bcrypt Password Security:** Ensured password hashes are created with 12 rounds of salt and never stored or returned in plain text.
-* **Enumeration and Hierarchy:** Built self-referential adjacency list model in SQLAlchemy to cleanly represent managerial hierarchy (`reports_to_id`).
-* **Generic 401 Responses:** Standardized detail message `"Invalid email or password"` to prevent user enumeration attacks.
-* **Email Validation:** Handled `.test` top-level domains specified in assignment instructions without DNS deliverability rejection.
+* **Duration Rule Enforcement:** Delegated duration calculation to pure domain functions (`app/domain/rules.py`), executing before database queries.
+* **Concurrency Locking:** Serialized concurrent leave/WFH submissions per user using row-level pessimistic locking (`with_for_update`), preventing simultaneous conflicting submissions.
+* **Resource Privacy:** Enforced 404 Not Found (instead of 403) when attempting to access or cancel requests owned by another user, preventing resource enumeration.
 
 ### 4. Tests Executed & Results
-* Ran pytest across all suites: 11 passed in 3.65s (`test_health.py` and `test_auth.py`).
+* Ran full test suite across all modules: 26 passed in 13.82s.
 
 ### 5. Next Milestone
-* **Milestone 3 — Leave & Work-From-Home (WFH) Management:**
-  - Create `LeaveRequest` and `WfhRequest` SQLAlchemy models.
-  - Generate Alembic migration for leave and WFH tables.
-  - Implement duration calculation logic (`FULL_DAY`, `HALF_DAY`, `HOURS`) in domain rules.
-  - Implement WFH date range and 2-working-days validation.
-  - Implement concurrency-safe overlap detection using row-level pessimistic locking (`FOR UPDATE`).
-  - Implement endpoints: `POST /leaves`, `GET /leaves/me`, `POST /leaves/{id}/cancel`, `POST /wfh`, `GET /wfh/me`, `POST /wfh/{id}/cancel`.
-  - Author comprehensive test suite in `tests/test_leaves.py` and `tests/test_wfh.py`.
+* **Milestone 4 — Manager Approval Workflow:**
+  - Build `GET /manager/requests` returning direct reports' requests (defaults to `status=PENDING`, optional filters: `status`, `employee_id`, `from_date`, `to_date`).
+  - Build decision endpoints:
+    - `POST /manager/leaves/{id}/approve` & `POST /manager/leaves/{id}/reject`
+    - `POST /manager/wfh/{id}/approve` & `POST /manager/wfh/{id}/reject`
+  - Enforce role check: manager only (403 for employees).
+  - Enforce hierarchy check: direct reports only (403 for requests outside manager's team).
+  - Enforce rejection comment minimum length (>= 5 characters).
+  - Enforce state machine (deciding non-pending request returns 409 Conflict).
+  - Record audit trail: `decided_by`, `decided_at` (UTC timestamp), and `decision_comment`.
+  - Author comprehensive test suite in `tests/test_manager.py`.
