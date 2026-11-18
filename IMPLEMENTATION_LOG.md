@@ -123,29 +123,53 @@ This log tracks every completed milestone, code additions, architectural decisio
    - Manager approving WFH requests.
 7. Executed full test suite: 33/33 tests passed.
 
+---
+
+## Milestone 5: Reporting Engine (6-Month CSV Export)
+
+* **Status:** Complete
+* **Date:** 2026-11-18
+* **Author:** Senior Backend Engineer
+
+### 1. Activities Completed
+1. Implemented server-side 6-calendar-month date window calculation in `ReportService` using `dateutil.relativedelta` (`from_date = today - relativedelta(months=6)` to `to_date = today`).
+2. Built aggregation query layer across `LeaveRequest` and `WfhRequest` records for the target employee within the 6-month window.
+3. Implemented multi-day WFH row expansion: generates one individual row per working day (Monday-Friday) with `request_type=WFH` and `days_counted=1.0`.
+4. Structured CSV generation according to exact specification:
+   - Header: `date,request_type,leave_type,duration_type,half,hours,days_counted,status,reason,decided_by,decided_at`
+   - Data rows sorted chronologically oldest first.
+   - Decider email resolved for `decided_by` column.
+   - Blank line separator.
+   - Summary block: Total APPROVED leave days (2 decimal places), total approved WFH days, count of PENDING and REJECTED requests.
+5. Implemented role-based access control in `GET /reports/leaves`:
+   - Employees can only download their own report.
+   - Passing `?employee_id=<id>` by a non-manager returns 403 Forbidden.
+   - Managers can pass `?employee_id=<id>` for direct reports; accessing another manager's direct report returns 403 Forbidden.
+   - Handles empty history gracefully: returns valid CSV with header and zero-valued summary block without error.
+6. Implemented endpoint `GET /reports/leaves` in `app/api/v1/reports.py` with `Content-Type: text/csv` and `Content-Disposition: attachment; filename=leave_report_<email>_<from>_<to>.csv`.
+7. Generated verified `sample_report.csv` from a clean sample run.
+8. Authored comprehensive test suite in `tests/test_reports.py` (3 test scenarios).
+9. Executed full test suite: 36/36 tests passed.
+
 ### 2. Files Created or Modified
-* `app/schemas/manager.py` (Created)
-* `app/services/manager_service.py` (Created)
-* `app/api/v1/manager.py` (Created)
-* `app/repositories/leave_repo.py` (Added `get_team_leaves`)
-* `app/repositories/wfh_repo.py` (Added `get_team_wfh`)
-* `app/main.py` (Registered `manager_router`)
-* `tests/test_manager.py` (Created)
+* `app/services/report_service.py` (Created)
+* `app/api/v1/reports.py` (Created)
+* `app/main.py` (Registered `reports_router`)
+* `sample_report.csv` (Generated & Verified)
+* `tests/test_reports.py` (Created)
 
 ### 3. Key Technical Decisions
-* **Team Authorization Isolation:** Directly queried requester's `reports_to_id` against `manager.id` inside the domain service layer, returning 403 Forbidden if a manager attempts to decide another manager's reports.
-* **Audit Trail Integrity:** System-generated UTC timestamps (`datetime.now(timezone.utc)`) and authenticated caller ID used for `decided_at` and `decided_by`, preventing client-side forgery.
-* **Centralized Transition Guard:** Both leave and WFH decision endpoints delegate directly to `RequestStateMachine.validate_transition`, preventing state corruption.
+* **Strict Server-Side Window:** Rejected client-side date tampering by computing the 6-calendar-month boundary exclusively on the server using `dateutil.relativedelta`.
+* **WFH Multi-Day Expansion:** Decomposed WFH spans into discrete working day instances so leave and WFH rows can be chronologically interleaved and accurately aggregated.
+* **Dual Download Modes:** Seamlessly supported employee self-service and managerial team auditing through single endpoint with permission checking.
 
 ### 4. Tests Executed & Results
-* Ran full test suite across all modules: 33 passed in 20.51s.
+* Ran full test suite across all modules: 36 passed in 22.30s.
 
 ### 5. Next Milestone
-* **Milestone 5 — Reporting Engine (6-Month CSV Export):**
-  - Implement server-side exact 6-calendar-month calculation using `dateutil.relativedelta`.
-  - Build query logic aggregating leave and WFH records within the date window.
-  - Expand multi-day WFH requests into one row per working day.
-  - Construct exact CSV formatted string with headers, chronological data rows, blank line, and summary statistics block.
-  - Implement role-based access control (caller only, or manager for direct report; 403 for others).
-  - Return valid CSV with zero summary for empty history.
-  - Author comprehensive test suite in `tests/test_reports.py`.
+* **Milestone 6 — DevOps, Documentation & Final Engineering Quality:**
+  - Author multi-stage, secure `Dockerfile`.
+  - Author `docker-compose.yml` for backend API and PostgreSQL services with health check dependencies.
+  - Author exhaustive, production-grade `README.md`.
+  - Perform full test regression and clean workspace check.
+  - Final requirement traceability matrix audit.

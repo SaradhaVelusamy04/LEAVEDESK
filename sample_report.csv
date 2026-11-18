@@ -1,0 +1,12 @@
+date,request_type,leave_type,duration_type,half,hours,days_counted,status,reason,decided_by,decided_at
+2026-10-04,LEAVE,EARNED,FULL_DAY,,,1.0,APPROVED,Annual vacation,priya.manager@leavedesk.test,
+2026-10-29,LEAVE,CASUAL,HALF_DAY,FIRST_HALF,,0.5,APPROVED,Personal errand,priya.manager@leavedesk.test,
+2026-11-03,WFH,,,,,1.0,APPROVED,Home internet setup,priya.manager@leavedesk.test,
+2026-11-04,WFH,,,,,1.0,APPROVED,Home internet setup,priya.manager@leavedesk.test,
+2026-11-13,LEAVE,SICK,HOURS,,2,0.25,PENDING,Dental appointment,,
+
+SUMMARY
+Total Approved Leave Days,1.50
+Total Approved WFH Days,2
+Pending Requests Count,1
+Rejected Requests Count,0

@@ -16,6 +16,7 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.leaves import router as leaves_router
 from app.api.v1.wfh import router as wfh_router
 from app.api.v1.manager import router as manager_router
+from app.api.v1.reports import router as reports_router
 
 
 def create_application() -> FastAPI:
@@ -49,7 +50,7 @@ def create_application() -> FastAPI:
     app.add_exception_handler(Exception, generic_exception_handler)
 
     # Routers (mounted both at root and with /api/v1 prefix)
-    for router in (health_router, auth_router, leaves_router, wfh_router, manager_router):
+    for router in (health_router, auth_router, leaves_router, wfh_router, manager_router, reports_router):
         app.include_router(router)
         app.include_router(router, prefix=settings.API_V1_STR)
 
