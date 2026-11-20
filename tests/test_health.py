@@ -9,9 +9,9 @@ def test_health_check_success(client: TestClient):
     assert response.json() == {"status": "ok"}
 
 
-def test_health_check_api_v1(client: TestClient):
-    """Test health check under /api/v1 prefix."""
-    response = client.get("/api/v1/health")
+def test_health_check(client: TestClient):
+    """Test health check endpoint defined in the assignment."""
+    response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 

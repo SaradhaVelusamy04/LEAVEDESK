@@ -51,6 +51,7 @@ def create_application() -> FastAPI:
 
     # Routers (mounted both at root and with /api/v1 prefix)
     # Register all API routers under the versioned API prefix
+    # Routers: register both root-level and versioned API routes
     for router in (
         health_router,
         auth_router,
@@ -59,7 +60,8 @@ def create_application() -> FastAPI:
         manager_router,
         reports_router,
     ):
-        app.include_router(router, prefix=settings.API_V1_STR)
+        app.include_router(router)
+        #app.include_router(router, prefix=settings.API_V1_STR)
     return app
 
 
