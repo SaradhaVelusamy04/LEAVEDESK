@@ -8,7 +8,7 @@
 
 > **IQuantsGraph Pvt Ltd — Python Backend Engineering Intern Assignment**  
 > Reference: `IQG-ENG-INTERN-API`  
-> Author: Senior Backend Engineering & System Architecture Implementation
+
 
 ---
 
