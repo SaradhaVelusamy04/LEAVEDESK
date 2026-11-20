@@ -79,50 +79,58 @@ LeaveDesk is designed as a **Modular Monolith** adhering to **Clean Architecture
 ## 4. Project Directory Structure
 
 ```
-d:\LEAVEDESK\
-├── alembic\                       # Database migration environment
-│   ├── versions\                  # Migration scripts (0001_users, 0002_leave_wfh)
-│   └── env.py                     # SQLAlchemy metadata configuration
-├── app\
-│   ├── api\                       # Presentation Layer
+LEAVEDESK/
+├── alembic/                       # Database migration environment
+│   ├── versions/                  # Migration scripts (0001_users, 0002_leave_wfh)
+│   ├── env.py                     # SQLAlchemy metadata configuration
+│   └── script.py.mako             # Migration template
+├── app/
+│   ├── api/                       # Presentation Layer
 │   │   ├── deps.py                # Security and authentication dependencies
-│   │   └── v1\
+│   │   └── v1/
 │   │       ├── auth.py            # POST /auth/login, GET /auth/me
 │   │       ├── leaves.py          # POST /leaves, GET /leaves/me, cancel
 │   │       ├── wfh.py             # POST /wfh, GET /wfh/me, cancel
 │   │       ├── manager.py         # GET /manager/requests, approve, reject
 │   │       ├── reports.py         # GET /reports/leaves
 │   │       └── health.py          # GET /health
-│   ├── core\                      # Core Infrastructure
+│   ├── core/                      # Core Infrastructure
 │   │   ├── config.py              # Pydantic Settings configuration
 │   │   ├── database.py            # SQLAlchemy engine, sessionmaker, base
 │   │   ├── exceptions.py          # Centralized error handlers (401, 403, 404, 409, 422, 500)
 │   │   └── security.py            # Bcrypt hashing & JWT signing
-│   ├── domain\                    # Domain Business Layer
+│   ├── domain/                    # Domain Business Layer
 │   │   ├── enums.py               # Roles, Leave types, Durations, Status enums
 │   │   ├── rules.py               # Leave duration calculator & working-day rules
 │   │   └── state_machine.py       # Centralized RequestStateMachine
-│   ├── models\                    # SQLAlchemy ORM Entities
+│   ├── models/                    # SQLAlchemy ORM Entities
 │   │   ├── user.py                # User model with self-referential hierarchy
 │   │   ├── leave.py               # LeaveRequest model
 │   │   └── wfh.py                 # WfhRequest model
-│   ├── repositories\              # Data Access Layer
+│   ├── repositories/              # Data Access Layer
 │   │   ├── user_repo.py
 │   │   ├── leave_repo.py
 │   │   └── wfh_repo.py
-│   ├── schemas\                   # Pydantic DTO Schemas
+│   ├── schemas/                   # Pydantic DTO Schemas
 │   │   ├── auth.py
 │   │   ├── leave.py
 │   │   ├── wfh.py
 │   │   └── manager.py
-│   ├── services\                  # Application Orchestration Layer
+│   ├── services/                  # Application Orchestration Layer
 │   │   ├── auth_service.py
 │   │   ├── leave_service.py
 │   │   ├── wfh_service.py
 │   │   ├── manager_service.py
 │   │   └── report_service.py
 │   └── main.py                    # FastAPI application factory & middleware
-├── tests\                         # Pytest Automated Test Suite
+├── Documentation/                 # Engineering Specifications & Planning Documents
+│   ├── ARCHITECTURE.md            # Clean Architecture specification, ERD & concurrency design
+│   ├── ASSUMPTIONS.md             # Documented business rules & edge case interpretations
+│   ├── IMPLEMENTATION_LOG.md      # Chronological milestone execution log & audit history
+│   ├── IQG_Intern_Assignment_Backend_API.pdf # Assignment specification document (PDF)
+│   ├── PROJECT_PLAN.md            # 7-milestone delivery roadmap & technology rationale
+│   └── REQUIREMENT_TRACEABILITY.md # 1:1 Requirement verification matrix (36/36 tests verified)
+├── tests/                         # Pytest Automated Test Suite
 │   ├── conftest.py                # DB fixtures, TestClient setup
 │   ├── test_health.py             # Health check tests
 │   ├── test_auth.py               # Authentication and role enforcement tests
@@ -135,23 +143,33 @@ d:\LEAVEDESK\
 ├── alembic.ini                    # Alembic configuration
 ├── Dockerfile                     # Multi-stage container definition
 ├── docker-compose.yml             # Orchestration for PostgreSQL + API
+├── pytest.ini                     # Pytest configuration
 ├── requirements.txt               # Pinned dependencies
-├── seed.py                        # Database seed script
 ├── sample_report.csv              # Verified exported sample CSV
-├── ARCHITECTURE.md                # System architecture documentation
-├── ASSUMPTIONS.md                 # Explicit design assumptions
-├── PROJECT_PLAN.md                # Implementation roadmap
-├── REQUIREMENT_TRACEABILITY.md    # 1:1 Requirement verification matrix
-└── IMPLEMENTATION_LOG.md          # Chronological milestone execution log
+├── seed.py                        # Database seed script
+└── README.md                      # Project documentation (this file)
 ```
 
 ---
 
-## 5. Local Setup & Installation
+## 5. Engineering Documentation & Specifications
+
+All core architectural and project governance documents are maintained inside the [`Documentation/`](Documentation/) directory:
+
+* 📐 [**System Architecture (`Documentation/ARCHITECTURE.md`)**](Documentation/ARCHITECTURE.md) — Modular monolith structure, Clean Architecture layers, ERD schema design, and user-level pessimistic locking (`FOR UPDATE`).
+* 📋 [**Requirement Traceability Matrix (`Documentation/REQUIREMENT_TRACEABILITY.md`)**](Documentation/REQUIREMENT_TRACEABILITY.md) — 1:1 mapping of every requirement from the PDF brief to code modules with 100% verified test coverage.
+* 📝 [**Design Assumptions (`Documentation/ASSUMPTIONS.md`)**](Documentation/ASSUMPTIONS.md) — Explicit domain interpretations for Monday–Friday working days, multi-day WFH spans, partial-day `HOURS` overlap policy, and server-side 6-month calendar calculations.
+* 🗺️ [**Project Delivery Plan (`Documentation/PROJECT_PLAN.md`)**](Documentation/PROJECT_PLAN.md) — 7-milestone incremental implementation roadmap and technology decision records.
+* 📜 [**Implementation Log (`Documentation/IMPLEMENTATION_LOG.md`)**](Documentation/IMPLEMENTATION_LOG.md) — Step-by-step engineering log tracking changes, decisions, and testing milestones.
+* 📄 [**Assignment Brief (`Documentation/IQG_Intern_Assignment_Backend_API.pdf`)**](Documentation/IQG_Intern_Assignment_Backend_API.pdf) — Original 7-page assignment specification PDF issued by IQuantsGraph Pvt Ltd.
+
+---
+
+## 6. Local Setup & Installation
 
 ### Prerequisites
 * Python 3.11+
-* PostgreSQL (or Docker)
+* PostgreSQL (or SQLite for local lightweight testing)
 * Git
 
 ### Step-by-Step Installation
@@ -163,15 +181,22 @@ d:\LEAVEDESK\
    ```
 
 2. **Create and Activate Virtual Environment:**
-   ```bash
-   # Windows
-   python -m venv .venv
-   .\.venv\Scripts\activate
-
-   # Linux / macOS
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
+   * **Windows (PowerShell):**
+     ```powershell
+     python -m venv .venv
+     .\.venv\Scripts\Activate.ps1
+     ```
+     *(If script execution is disabled, enable it for your current shell: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process`, or run directly using `.\.venv\Scripts\uvicorn.exe`)*
+   * **Windows (Command Prompt):**
+     ```cmd
+     python -m venv .venv
+     .\.venv\Scripts\activate.bat
+     ```
+   * **Linux / macOS:**
+     ```bash
+     python3 -m venv .venv
+     source .venv/bin/activate
+     ```
 
 3. **Install Pinned Dependencies:**
    ```bash
@@ -183,7 +208,7 @@ d:\LEAVEDESK\
    ```bash
    cp .env.example .env
    ```
-   *(Update `DATABASE_URL` with your local PostgreSQL credentials if running without Docker).*
+   *(Review `.env` and configure your `DATABASE_URL` with your local PostgreSQL or SQLite credentials)*.
 
 5. **Run Database Migrations:**
    ```bash
@@ -202,45 +227,46 @@ d:\LEAVEDESK\
 
 ---
 
-## 6. Docker & Docker Compose Deployment
+## 7. Docker & Docker Compose Deployment
 
-To run the complete production-ready stack (FastAPI backend + PostgreSQL) in isolated containers:
+To run the complete production stack (FastAPI backend + PostgreSQL) in isolated containers:
 
 ```bash
 # Build and run containers in background
-docker-compose up --build -d
+docker compose up --build -d
 
 # Check service logs
-docker-compose logs -f
+docker compose logs -f
 
 # Verify running containers
-docker-compose ps
+docker compose ps
 ```
 
-The application automatically runs migrations and seeds sample data upon startup. It is accessible at `http://localhost:8000`.
+The application container automatically runs migrations (`alembic upgrade head`), executes `seed.py`, and starts Uvicorn on port `8000`.
 
 ---
 
-## 7. Interactive API Documentation (Swagger UI)
+## 8. Interactive API Documentation (Swagger UI)
 
-Open your web browser and navigate to:
+Once running, access the documentation via your browser:
 * **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
 * **ReDoc:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+* **Health Check Probe:** [http://localhost:8000/health](http://localhost:8000/health)
 
-### Testing in Swagger UI
+### Testing via Swagger UI
 1. Execute `POST /auth/login` using one of the seed accounts below.
 2. Copy the returned `access_token`.
 3. Click the **Authorize** button (top right of Swagger UI).
-4. Enter token as: `Bearer <access_token>`.
+4. Enter token: `Bearer <access_token>`.
 5. Execute protected endpoints (`/leaves`, `/wfh`, `/manager/requests`, `/reports/leaves`).
 
 ---
 
-## 8. Seed Data & Test Credentials
+## 9. Seed Data & Test Credentials
 
 The database seed script (`seed.py`) configures the following organizational hierarchy:
 
-| Name | Email | Role | Reports To | Password |
+| Name | Email | Role | Reports To | Testing Password |
 | :--- | :--- | :--- | :--- | :--- |
 | **Priya Manager** | `priya.manager@leavedesk.test` | `manager` | *None* | `Manager@123` |
 | **Arjun Employee**| `arjun@leavedesk.test` | `employee` | Priya Manager | `Employee@123` |
@@ -248,7 +274,7 @@ The database seed script (`seed.py`) configures the following organizational hie
 
 ---
 
-## 9. Test Execution & Coverage
+## 10. Test Execution & Coverage
 
 The test suite contains **36 automated test scenarios** covering every functional requirement, edge case, and validation rule.
 
@@ -262,6 +288,8 @@ To run with verbose output:
 pytest -v
 ```
 
+*(Or without activating venv: `.\.venv\Scripts\pytest.exe -v`)*
+
 ### Verified Test Summary
 * **Authentication Tests (`tests/test_auth.py`):** 8 passed (login, generic 401, expired tokens, tampered tokens, profile masking, 403 role enforcement, seed idempotency).
 * **Health Check Tests (`tests/test_health.py`):** 3 passed (live DB probe, /api/v1 routing, 503 on DB drop).
@@ -272,9 +300,9 @@ pytest -v
 
 ---
 
-## 10. Design Assumptions & Rationale
+## 11. Design Assumptions & Rationale
 
-As instructed in Sections 8, 16, and 6.4 of the brief, key technical assumptions have been documented:
+As instructed in Sections 8, 16, and 6.4 of the brief, key technical assumptions are documented in [Documentation/ASSUMPTIONS.md](Documentation/ASSUMPTIONS.md):
 
 1. **Working Days Definition:**
    * Working days are defined strictly as Monday through Friday (`weekday() < 5`).
@@ -295,7 +323,7 @@ As instructed in Sections 8, 16, and 6.4 of the brief, key technical assumptions
 
 ---
 
-## 11. Known Limitations & Future Improvements
+## 12. Known Limitations & Future Improvements
 
 ### Known Limitations
 * **Public Holiday Integration:** Currently, all Mondays through Fridays are treated as working days. Organizations with fixed regional holiday calendars require calendar integration.
@@ -308,14 +336,3 @@ As instructed in Sections 8, 16, and 6.4 of the brief, key technical assumptions
 * **Audit Event Stream:** Implement append-only event logging for regulatory compliance and audit history.
 
 ---
-
-## 12. Effort Spent per Assignment Section
-
-| Section | Topic | Estimated Effort | Focus Areas |
-| :--- | :--- | :--- | :--- |
-| **Section 1** | Authentication & Roles | ~2.5 hours | Model hierarchy, Bcrypt hashing, JWT generation/validation, role dependencies, seed script. |
-| **Section 2** | Leave & WFH Requests | ~4.0 hours | Duration calculations (`FULL_DAY`, `HALF_DAY`, `HOURS`), working days evaluator, overlap rules, user row locking. |
-| **Section 3** | Manager Approval Workflow | ~2.5 hours | Team authorization checking, centralized State Machine, audit trails, comment validations. |
-| **Section 4** | 6-Month CSV Reporting | ~2.5 hours | `relativedelta` window arithmetic, multi-day WFH row expansion, summary block formatting, stream responses. |
-| **Section 5 & 6**| Architecture, DevOps, Docs & Tests | ~3.5 hours | Clean architecture layering, Docker & Compose, Alembic migrations, full 36-test suite, README. |
-| **Total** | | **~15.0 hours** | |
