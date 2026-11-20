@@ -13,7 +13,7 @@ class LoginRequest(BaseModel):
     def validate_email(cls, v: str) -> str:
         v = v.strip().lower()
         # Allows valid emails including .test, .internal, etc.
-        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+        if "@" not in v or "." not in v:
             raise ValueError("Invalid email format")
         return v
 

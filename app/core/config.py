@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # Database
-    DATABASE_URL: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/leavedesk"
+    DATABASE_URL: str = "postgresql+psycopg2://postgres:postgres@localhost:5433/leavedesk"
     TEST_DATABASE_URL: str = "sqlite:///./test.db"
 
     # JWT & Security
