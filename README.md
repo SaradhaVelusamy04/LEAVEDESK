@@ -1,136 +1,128 @@
 # LeaveDesk — Employee Leave & Work-From-Home Management API
 
-[![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
-[![Framework](https://img.shields.io/badge/FastAPI-0.115.8-green.svg)](https://fastapi.tiangolo.com/)
-[![ORM](https://img.shields.io/badge/SQLAlchemy-2.0.38-red.svg)](https://www.sqlalchemy.org/)
-[![Database](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
-[![Tests](https://img.shields.io/badge/Tests-36%20Passed-brightgreen.svg)]()
+[![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115.8-green.svg)](https://fastapi.tiangolo.com/)
+[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.38-red.svg)](https://www.sqlalchemy.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
+[![Tests](https://img.shields.io/badge/Tests-36%20Scenarios-brightgreen.svg)]()
 
 > **IQuantsGraph Pvt Ltd — Python Backend Engineering Intern Assignment**  
-> Reference: `IQG-ENG-INTERN-API`  
-> Author: Senior Backend Engineering & System Architecture Implementation
+> Reference: `IQG-ENG-INTERN-API`
 
 ---
 
 ## 1. Project Overview
 
-**LeaveDesk** is an enterprise-grade RESTful API designed to automate and streamline employee leave and Work-From-Home (WFH) management.
-The system provides role-based access control (RBAC), multi-format leave duration calculations (`FULL_DAY`, `HALF_DAY`, `HOURS`), working-day business logic, concurrency-safe overlap checking, centralized request state transitions, manager review workflows, and 6-month historical CSV reporting.
+**LeaveDesk** is a RESTful API designed to automate and streamline employee leave and Work-From-Home (WFH) management.
 
----
+The system provides role-based access control (RBAC), multiple leave duration types (`FULL_DAY`, `HALF_DAY`, `HOURS`), working-day calculations, request overlap validation, centralized request state transitions, manager review workflows, and six-month historical CSV reporting.
 
 ## 2. Architecture & Design Principles
 
-LeaveDesk is designed as a **Modular Monolith** adhering to **Clean Architecture** principles. It remains a single deployable unit while isolating concerns across decoupled layers:
+LeaveDesk follows a **Modular Monolith** architecture inspired by **Clean Architecture** principles. It remains a single deployable application while separating presentation, application, domain, and infrastructure responsibilities.
 
-```
+```text
 +--------------------------------------------------------------------------+
-|                            Presentation Layer                            |
-|          FastAPI Routers - Pydantic Request/Response Schemas             |
-|          Auth & Role Dependencies - OpenAPI/Swagger Documentation        |
+|                         Presentation Layer                               |
+|       FastAPI Routers - Pydantic Schemas - Authentication Dependencies  |
+|                    OpenAPI / Swagger Documentation                      |
 +------------------------------------+-------------------------------------+
                                      |
                                      v
 +--------------------------------------------------------------------------+
-|                            Application Layer                             |
-|          Service Orchestrators (Auth, Leave, WFH, Manager, Report)       |
-|          Centralized Status Transition State Machine                     |
+|                         Application Layer                                |
+|           Services - Business Workflow Orchestration                     |
+|                  Request State Transition Logic                          |
 +------------------------------------+-------------------------------------+
                                      |
                                      v
 +--------------------------------------------------------------------------+
-|                              Domain Layer                                |
-|          Business Entities & Value Objects - Enumerations                |
-|          Duration Calculations - Overlap Rules - Domain Exceptions       |
+|                            Domain Layer                                  |
+|           Business Rules - Enums - Duration Calculations                 |
+|                    Overlap Validation - State Rules                      |
 +------------------------------------+-------------------------------------+
-                                     ^
-                                     | (Dependency Inversion)
-+------------------------------------+-------------------------------------+
-|                          Infrastructure Layer                            |
-|          SQLAlchemy 2.x Declarative Models & Repositories                |
-|          PostgreSQL Database Connections & Sessions                      |
-|          Alembic Migrations - Cryptography (Bcrypt / JWT)                |
+                                     |
+                                     v
++--------------------------------------------------------------------------+
+|                        Infrastructure Layer                              |
+|       SQLAlchemy Models - Repositories - PostgreSQL - Alembic             |
+|                    Password Hashing - JWT Security                      |
 +--------------------------------------------------------------------------+
 ```
 
 ### Key Architectural Highlights
-* **Repository Pattern:** Database queries are encapsulated in repository classes (`UserRepository`, `LeaveRepository`, `WfhRepository`), decoupling business logic from ORM queries.
-* **Centralized State Machine:** Lifecycle transitions (`PENDING -> APPROVED`, `PENDING -> REJECTED`, `PENDING -> CANCELLED`) are governed by `RequestStateMachine`. Direct or invalid transitions are strictly rejected with HTTP 409 Conflict.
-* **Concurrency-Safe Overlap Prevention:** Implements **pessimistic row locking on the user record** (`SELECT ... FOR UPDATE`) during leave and WFH submissions. This eliminates concurrent submission race conditions per user without incurring database-wide lock contention.
-* **Zero Information Leakage:** Generic 401 messages prevent account enumeration on login, and 404 Not Found is returned when attempting to access other users' requests to conceal resource IDs.
 
----
+- **Repository Pattern:** Database access is encapsulated in repository classes such as `UserRepository`, `LeaveRepository`, and `WfhRepository`, keeping query logic separate from service orchestration.
+- **Centralized State Machine:** Request lifecycle transitions (`PENDING -> APPROVED`, `PENDING -> REJECTED`, and `PENDING -> CANCELLED`) are managed through `RequestStateMachine`. Invalid transitions are rejected with HTTP 409 Conflict.
+- **Concurrency Control:** Leave and WFH submissions use user-level row locking (`SELECT ... FOR UPDATE`) during conflict validation when supported by the database, helping serialize concurrent submissions for the same user.
+- **Consistent Access Control:** Generic login failure responses prevent account enumeration. Requests for resources belonging to other employees return 404 where required by the assignment, while unauthorized role or manager access returns 403.
 
 ## 3. Technology Stack
 
-* **Language:** Python 3.11+ (verified up to 3.13)
-* **API Framework:** FastAPI 0.115.8
-* **Web Server:** Uvicorn 0.34.0 (with uvloop/httptools)
-* **Database & ORM:** PostgreSQL 16, SQLAlchemy 2.0.38, Psycopg2-binary 2.9.10
-* **Schema Migrations:** Alembic 1.14.1
-* **Data Validation:** Pydantic 2.10.6 & Pydantic-Settings 2.7.1
-* **Authentication & Cryptography:** JWT (`python-jose 3.4.0`) & `bcrypt 4.2.1`
-* **Date Utilities:** `python-dateutil 2.9.0`
-* **Testing:** Pytest 8.3.4 & HTTPX 0.28.1 (FastAPI TestClient)
-* **DevOps:** Docker & Docker Compose
-
----
+| Category | Technology |
+|---|---|
+| Language | Python 3.11+ |
+| API Framework | FastAPI 0.115.8 |
+| Web Server | Uvicorn 0.34.0 |
+| Database | PostgreSQL 16 |
+| ORM | SQLAlchemy 2.0.38 |
+| Database Driver | Psycopg2-binary 2.9.10 |
+| Schema Migrations | Alembic 1.14.1 |
+| Data Validation | Pydantic 2.10.6 |
+| Configuration | Pydantic Settings 2.7.1 |
+| Authentication | JWT using python-jose 3.4.0 |
+| Password Hashing | bcrypt 4.2.1 |
+| Date Utilities | python-dateutil 2.9.0 |
+| Testing | Pytest 8.3.4, HTTPX 0.28.1 |
+| Containerization | Docker and Docker Compose |
 
 ## 4. Project Directory Structure
 
 ```
-LEAVEDESK/
-├── alembic/                       # Database migration environment
-│   ├── versions/                  # Migration scripts (0001_users, 0002_leave_wfh)
-│   ├── env.py                     # SQLAlchemy metadata configuration
-│   └── script.py.mako             # Migration template
-├── app/
-│   ├── api/                       # Presentation Layer
+d:\LEAVEDESK\
+├── alembic\                       # Database migration environment
+│   ├── versions\                  # Migration scripts (0001_users, 0002_leave_wfh)
+│   └── env.py                     # SQLAlchemy metadata configuration
+├── app\
+│   ├── api\                       # Presentation Layer
 │   │   ├── deps.py                # Security and authentication dependencies
-│   │   └── v1/
+│   │   └── v1\
 │   │       ├── auth.py            # POST /auth/login, GET /auth/me
 │   │       ├── leaves.py          # POST /leaves, GET /leaves/me, cancel
 │   │       ├── wfh.py             # POST /wfh, GET /wfh/me, cancel
 │   │       ├── manager.py         # GET /manager/requests, approve, reject
 │   │       ├── reports.py         # GET /reports/leaves
 │   │       └── health.py          # GET /health
-│   ├── core/                      # Core Infrastructure
+│   ├── core\                      # Core Infrastructure
 │   │   ├── config.py              # Pydantic Settings configuration
 │   │   ├── database.py            # SQLAlchemy engine, sessionmaker, base
 │   │   ├── exceptions.py          # Centralized error handlers (401, 403, 404, 409, 422, 500)
 │   │   └── security.py            # Bcrypt hashing & JWT signing
-│   ├── domain/                    # Domain Business Layer
+│   ├── domain\                    # Domain Business Layer
 │   │   ├── enums.py               # Roles, Leave types, Durations, Status enums
 │   │   ├── rules.py               # Leave duration calculator & working-day rules
 │   │   └── state_machine.py       # Centralized RequestStateMachine
-│   ├── models/                    # SQLAlchemy ORM Entities
+│   ├── models\                    # SQLAlchemy ORM Entities
 │   │   ├── user.py                # User model with self-referential hierarchy
 │   │   ├── leave.py               # LeaveRequest model
 │   │   └── wfh.py                 # WfhRequest model
-│   ├── repositories/              # Data Access Layer
+│   ├── repositories\              # Data Access Layer
 │   │   ├── user_repo.py
 │   │   ├── leave_repo.py
 │   │   └── wfh_repo.py
-│   ├── schemas/                   # Pydantic DTO Schemas
+│   ├── schemas\                   # Pydantic DTO Schemas
 │   │   ├── auth.py
 │   │   ├── leave.py
 │   │   ├── wfh.py
 │   │   └── manager.py
-│   ├── services/                  # Application Orchestration Layer
+│   ├── services\                  # Application Orchestration Layer
 │   │   ├── auth_service.py
 │   │   ├── leave_service.py
 │   │   ├── wfh_service.py
 │   │   ├── manager_service.py
 │   │   └── report_service.py
 │   └── main.py                    # FastAPI application factory & middleware
-├── Documentation/                 # Engineering Specifications & Planning Documents
-│   ├── ARCHITECTURE.md            # Clean Architecture specification, ERD & concurrency design
-│   ├── ASSUMPTIONS.md             # Documented business rules & edge case interpretations
-│   ├── IMPLEMENTATION_LOG.md      # Chronological milestone execution log & audit history
-│   ├── IQG_Intern_Assignment_Backend_API.pdf # Assignment specification document (PDF)
-│   ├── PROJECT_PLAN.md            # 7-milestone delivery roadmap & technology rationale
-│   └── REQUIREMENT_TRACEABILITY.md # 1:1 Requirement verification matrix (36/36 tests verified)
-├── tests/                         # Pytest Automated Test Suite
+├── tests\                         # Pytest Automated Test Suite
 │   ├── conftest.py                # DB fixtures, TestClient setup
 │   ├── test_health.py             # Health check tests
 │   ├── test_auth.py               # Authentication and role enforcement tests
@@ -143,147 +135,134 @@ LEAVEDESK/
 ├── alembic.ini                    # Alembic configuration
 ├── Dockerfile                     # Multi-stage container definition
 ├── docker-compose.yml             # Orchestration for PostgreSQL + API
-├── pytest.ini                     # Pytest configuration
 ├── requirements.txt               # Pinned dependencies
-├── sample_report.csv              # Verified exported sample CSV
 ├── seed.py                        # Database seed script
-└── README.md                      # Project documentation (this file)
+├── sample_report.csv              # Verified exported sample CSV
+├── ARCHITECTURE.md                # System architecture documentation
+├── ASSUMPTIONS.md                 # Explicit design assumptions
+├── PROJECT_PLAN.md                # Implementation roadmap
+├── REQUIREMENT_TRACEABILITY.md    # 1:1 Requirement verification matrix
+└── IMPLEMENTATION_LOG.md          # Chronological milestone execution log
 ```
 
 ---
 
-## 5. Engineering Documentation & Specifications
-
-All core architectural and project governance documents are maintained inside the [`Documentation/`](Documentation/) directory:
-
-* 📐 [**System Architecture (`Documentation/ARCHITECTURE.md`)**](Documentation/ARCHITECTURE.md) — Modular monolith structure, Clean Architecture layers, ERD schema design, and user-level pessimistic locking (`FOR UPDATE`).
-* 📋 [**Requirement Traceability Matrix (`Documentation/REQUIREMENT_TRACEABILITY.md`)**](Documentation/REQUIREMENT_TRACEABILITY.md) — 1:1 mapping of every requirement from the PDF brief to code modules with 100% verified test coverage.
-* 📝 [**Design Assumptions (`Documentation/ASSUMPTIONS.md`)**](Documentation/ASSUMPTIONS.md) — Explicit domain interpretations for Monday–Friday working days, multi-day WFH spans, partial-day `HOURS` overlap policy, and server-side 6-month calendar calculations.
-* 🗺️ [**Project Delivery Plan (`Documentation/PROJECT_PLAN.md`)**](Documentation/PROJECT_PLAN.md) — 7-milestone incremental implementation roadmap and technology decision records.
-* 📜 [**Implementation Log (`Documentation/IMPLEMENTATION_LOG.md`)**](Documentation/IMPLEMENTATION_LOG.md) — Step-by-step engineering log tracking changes, decisions, and testing milestones.
-* 📄 [**Assignment Brief (`Documentation/IQG_Intern_Assignment_Backend_API.pdf`)**](Documentation/IQG_Intern_Assignment_Backend_API.pdf) — Original 7-page assignment specification PDF issued by IQuantsGraph Pvt Ltd.
-
----
-
-## 6. Local Setup & Installation
+## 5. Local Setup & Installation
 
 ### Prerequisites
 * Python 3.11+
-* PostgreSQL (or SQLite for local lightweight testing)
+* PostgreSQL (or Docker)
 * Git
 
-### Step-by-Step Installation
+### Installation Steps
 
-1. **Clone the Repository:**
-   ```bash
-   git clone <repository-url>
-   cd LEAVEDESK
-   ```
+**1. Clone the repository**
+
+```bash
+git clone <repository-url>
+cd LEAVEDESK
+```
 
 2. **Create and Activate Virtual Environment:**
-   * **Windows (PowerShell):**
-     ```powershell
-     python -m venv .venv
-     .\.venv\Scripts\Activate.ps1
-     ```
-     *(If script execution is disabled, enable it for your current shell: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process`, or run directly using `.\.venv\Scripts\uvicorn.exe`)*
-   * **Windows (Command Prompt):**
-     ```cmd
-     python -m venv .venv
-     .\.venv\Scripts\activate.bat
-     ```
-   * **Linux / macOS:**
-     ```bash
-     python3 -m venv .venv
-     source .venv/bin/activate
-     ```
-
-3. **Install Pinned Dependencies:**
    ```bash
-   pip install --upgrade pip
-   pip install -r requirements.txt
+   # Windows
+   python -m venv .venv
+   .\.venv\Scripts\activate
+
+   # Linux / macOS
+   python3 -m venv .venv
+   source .venv/bin/activate
    ```
+
+**3. Install dependencies**
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
 
 4. **Configure Environment Variables:**
    ```bash
    cp .env.example .env
    ```
-   *(Review `.env` and configure your `DATABASE_URL` with your local PostgreSQL or SQLite credentials)*.
+   *(Update `DATABASE_URL` with your local PostgreSQL credentials if running without Docker).*
 
-5. **Run Database Migrations:**
-   ```bash
-   alembic upgrade head
-   ```
+```bash
+alembic upgrade head
+```
 
-6. **Seed Initial Test Users:**
-   ```bash
-   python seed.py
-   ```
+**6. Seed initial test users**
 
-7. **Start the Application Server:**
-   ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
+```bash
+python seed.py
+```
 
----
+**7. Start the application**
 
-## 7. Docker & Docker Compose Deployment
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-To run the complete production stack (FastAPI backend + PostgreSQL) in isolated containers:
+## 7. Docker Deployment
+
+## 6. Docker & Docker Compose Deployment
+
+To run the complete production-ready stack (FastAPI backend + PostgreSQL) in isolated containers:
 
 ```bash
 # Build and run containers in background
-docker compose up --build -d
+docker-compose up --build -d
 
 # Check service logs
-docker compose logs -f
+docker-compose logs -f
 
 # Verify running containers
-docker compose ps
+docker-compose ps
 ```
 
-The application container automatically runs migrations (`alembic upgrade head`), executes `seed.py`, and starts Uvicorn on port `8000`.
+The application automatically runs migrations and seeds sample data upon startup. It is accessible at `http://localhost:8000`.
 
 ---
 
-## 8. Interactive API Documentation (Swagger UI)
+## 7. Interactive API Documentation (Swagger UI)
 
-Once running, access the documentation via your browser:
+Open your web browser and navigate to:
 * **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
 * **ReDoc:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
-* **Health Check Probe:** [http://localhost:8000/health](http://localhost:8000/health)
 
-### Testing via Swagger UI
+### Testing in Swagger UI
 1. Execute `POST /auth/login` using one of the seed accounts below.
 2. Copy the returned `access_token`.
 3. Click the **Authorize** button (top right of Swagger UI).
-4. Enter token: `Bearer <access_token>`.
+4. Enter token as: `Bearer <access_token>`.
 5. Execute protected endpoints (`/leaves`, `/wfh`, `/manager/requests`, `/reports/leaves`).
 
 ---
 
-## 9. Seed Data & Test Credentials
+## 8. Seed Data & Test Credentials
 
 The database seed script (`seed.py`) configures the following organizational hierarchy:
 
-| Name | Email | Role | Reports To | Testing Password |
+| Name | Email | Role | Reports To | Password |
 | :--- | :--- | :--- | :--- | :--- |
 | **Priya Manager** | `priya.manager@leavedesk.test` | `manager` | *None* | `Manager@123` |
 | **Arjun Employee**| `arjun@leavedesk.test` | `employee` | Priya Manager | `Employee@123` |
 | **Meera Employee**| `meera@leavedesk.test` | `employee` | Priya Manager | `Employee@123` |
 
----
+These credentials are for local development and testing only. Passwords are stored as bcrypt hashes in the database.
 
 ## 10. Test Execution & Coverage
 
-The test suite contains **36 automated test scenarios** covering every functional requirement, edge case, and validation rule.
+The automated test suite is organized by functional area and covers authentication, authorization, leave and WFH rules, manager workflows, and CSV reporting.
 
-To run the complete test suite:
+Run all tests:
+
 ```bash
 pytest
 ```
 
-To run with verbose output:
+Run tests with detailed output:
+
 ```bash
 pytest -v
 ```
@@ -300,9 +279,9 @@ pytest -v
 
 ---
 
-## 11. Design Assumptions & Rationale
+## 10. Design Assumptions & Rationale
 
-As instructed in Sections 8, 16, and 6.4 of the brief, key technical assumptions are documented in [Documentation/ASSUMPTIONS.md](Documentation/ASSUMPTIONS.md):
+As instructed in Sections 8, 16, and 6.4 of the brief, key technical assumptions have been documented:
 
 1. **Working Days Definition:**
    * Working days are defined strictly as Monday through Friday (`weekday() < 5`).
@@ -323,11 +302,12 @@ As instructed in Sections 8, 16, and 6.4 of the brief, key technical assumptions
 
 ---
 
-## 12. Known Limitations & Future Improvements
+## 11. Known Limitations & Future Improvements
 
 ### Known Limitations
-* **Public Holiday Integration:** Currently, all Mondays through Fridays are treated as working days. Organizations with fixed regional holiday calendars require calendar integration.
-* **Partial-Day Time Slots for HOURS:** The assignment specifies `HOURS` as 1, 2, or 3 hours without morning/afternoon slot tags. While cumulative daily hours are protected, specific start-time collision detection is not modeled.
+
+- **Public Holiday Integration:** The current working-day calculation treats all weekdays as working days. Regional and organizational holidays are not included.
+- **Partial-Day Time Slots:** `HOURS` requests represent a number of hours but do not model specific start and end times. Therefore, time-slot-level collision detection is not implemented.
 
 ### Future Improvements
 * **Configurable Working Calendar:** Support organizational holiday calendars via database configurations or third-party calendar APIs.
@@ -337,7 +317,7 @@ As instructed in Sections 8, 16, and 6.4 of the brief, key technical assumptions
 
 ---
 
-## 13. Effort Spent per Assignment Section
+## 12. Effort Spent per Assignment Section
 
 | Section | Topic | Estimated Effort | Focus Areas |
 | :--- | :--- | :--- | :--- |
