@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     TEST_DATABASE_URL: str = "sqlite:///./test.db"
 
     # JWT & Security
-    JWT_SECRET_KEY: str = "leave-desk-super-secret-key-change-in-production-iqg-2026"
+    JWT_SECRET_KEY: str = "leave-desk-super-secret-key-change-in-production-iqg-2026"  #need a secret key at production.
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
